@@ -5,3 +5,15 @@ single-file public domain stb-style C headers for C (and sometimes C++)
 library    | lastest version | category | Lines of Code | description
 --------------------- | ---- | -------- | --- | -------------------------------
 **[tr24_smartptr.h](tr24_smartptr.h)** | 0.02 | pointers | 363 | smart pointers in C using witchcraft 
+
+
+# How to Use
+Get the header, and then insert code like this:
+```c
+#define TR24_INSERTHEADERNAMEHERE_IMPL
+#include "tr24_insertheadernamehere.h"
+```
+do the #define statement *once*. Exclude the #define statement if you want
+to include the header without implementation.
+
+> Happy Hacking!
