@@ -1,4 +1,4 @@
-/* tr24_smartptr.h - v0.01 - public domain therealblue24 2023
+/* tr24_smartptr.h - v0.02 - public domain therealblue24 2023
  * A C smart pointer library using hacky GNU C extensions.
  * 
  * This file provides both the interface and the implementation.
