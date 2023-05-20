@@ -212,6 +212,10 @@ TR24_PURE void *tr24sp__array_user_meta(void *ptr);
 
 #endif /* TR24_SMARTPTR_H_ */
 
+#ifdef TR24_IMPL
+#define TR24_SMARTPTR_IMPL
+#endif /* TR24_IMPL */
+
 #ifdef TR24_SMARTPTR_IMPL
 #undef TR24_SMARTPTR_IMPL
 

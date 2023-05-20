@@ -37,6 +37,10 @@ void *tr24_mutex_get(tr24_mutex_t mtx);
 
 #endif /* TR24_MUTEX_H_ */
 
+#ifdef TR24_IMPL
+#define TR24_MUTEX_IMPL
+#endif /* TR24_IMPL */
+
 #ifdef TR24_MUTEX_IMPL
 #undef TR24_MUTEX_IMPL
 
