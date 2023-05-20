@@ -18,5 +18,4 @@ Get the header, and then insert code like this:
 do the #define statement *once*. Exclude the #define statement if you want
 to include the header without implementation.
 
-> Happy Hacking!
 > Note: Lines are measured using the command `cloc`.
