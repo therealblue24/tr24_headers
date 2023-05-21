@@ -134,15 +134,6 @@ void *tr24sp__smove_size(void *ptr, size_t size);
 
 TR24_INLINE void tr24sp__sfree_stack(void *ptr)
 {
-    /* Old code:
-    union {
-        void **real_ptr;
-        void *ptr;
-    } conv;
-    conv.ptr = ptr;
-    tr24sp__sfree(*conv.real_ptr);
-    *conv.real_ptr = NULL;
-*/
     tr24sp__sfree(*(void **)ptr);
     *(void **)ptr = NULL;
 }
