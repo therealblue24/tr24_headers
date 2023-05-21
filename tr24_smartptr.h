@@ -44,6 +44,7 @@
  * -therealblue24
  *
  * History:
+ *      1.03 continue on C <-> C++ compatibility
  *      1.02 option to use C++ (not offically supported)
  *      1.01 warning when using C++ to say use the stdlib ptrs
  *      1.00 ready for prod i think, cleaned up code and optimized sfree_stack
@@ -123,8 +124,26 @@ void *tr24sp__srealloc(size_t type, void *ptr, size_t size);
 void tr24sp__sfree(void *ptr);
 void *tr24sp__smove_size(void *ptr, size_t size);
 
+#ifdef __cplusplus
+}
+#include <memory>
+
+TR24_INLINE static void *tr24sp__cppabi_ref(tr24sp__s_smalloc_args args)
+{
+    auto ptr = std::make_unique<tr24sp__s_smalloc_args>(args);
+    return ptr.get();
+}
+
+extern "C" {
+
+#define tr24sp__smalloc_m(...)                                    \
+    tr24sp__smalloc((tr24sp__s_smalloc_args *)tr24sp__cppabi_ref( \
+        (tr24sp__s_smalloc_args){ TR24SP_SENTINEL __VA_ARGS__ }))
+#else
+
 #define tr24sp__smalloc_m(...) \
     tr24sp__smalloc(&(tr24sp__s_smalloc_args){ TR24SP_SENTINEL __VA_ARGS__ })
+#endif /* __cplusplus */
 
 #define tr24_smalloc tr24sp__smalloc_m
 
@@ -167,7 +186,7 @@ TR24_INLINE void tr24sp__sfree_stack(void *ptr)
 #endif /* TR24_FREE */
 
 #define tr24__smart_ptr(k, t, ...)                                             \
-    ({                                                                         \
+    (t *)({                                                                    \
         struct s_tmp {                                                         \
             TR24SP_SENTINEL_DEC                                                \
             __typeof__(t) value;                                               \
@@ -189,7 +208,7 @@ TR24_INLINE void tr24sp__sfree_stack(void *ptr)
     })
 
 #define tr24__smart_arr(k, t, l, ...)                                  \
-    ({                                                                 \
+    (t *)({                                                            \
         struct s_tmp {                                                 \
             TR24SP_SENTINEL_DEC                                        \
             __typeof__(__typeof__(t)[l]) value;                        \
@@ -461,12 +480,22 @@ TR24_INLINE static void *tr24sp__smalloc_array(tr24sp__s_smalloc_args *args)
         .nmemb = args->nmemb,
     };
     TR24_MEMCPY(arr_meta + 1, args->meta.data, args->meta.size);
+#ifndef __cplusplus
     return tr24sp__smalloc_impl(&(tr24sp__s_smalloc_args){
         .size = args->nmemb * args->size,
         .kind = (enum tr24sp__pointer)(args->kind | TR24_SP_ARRAY),
         .dtor = args->dtor,
         .meta = { &new_meta, size },
     });
+#else
+    return tr24sp__smalloc_impl(
+        (tr24sp__s_smalloc_args *)tr24sp__cppabi_ref((tr24sp__s_smalloc_args){
+            .size = args->nmemb * args->size,
+            .kind = (enum tr24sp__pointer)(args->kind | TR24_SP_ARRAY),
+            .dtor = args->dtor,
+            .meta = { &new_meta, size },
+        }));
+#endif /* __cplusplus */
 }
 
 TR24_MALLOC_API
