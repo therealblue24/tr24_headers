@@ -4,10 +4,10 @@ single-file public domain stb-style C headers for C (and sometimes C++)
 <a name="tr24_libs"></a>
 library    | lastest version | category | Lines of Code | description | use for
 --------------------- | ---- | -------- | --- | ----------------|-----------------------------------------------------
-**[tr24_smartptr.h](tr24_smartptr.h)** | 1.03 | pointers  | 411 | smart pointers in C using witchcraft | C (C++ compat)
+**[tr24_smartptr.h](tr24_smartptr.h)** | 1.03 | pointers  | 420 | smart pointers in C using witchcraft | C (C++ compat)
 **[tr24_mutex.h](tr24_mutex.h)**       | 0.02 | threading | 61  | simple mutex implementation in C     | C/C++
 
-Total lines of code: **472**
+Total lines of code: **481**
 
 # How to Use
 Get the header, and then insert code like this:

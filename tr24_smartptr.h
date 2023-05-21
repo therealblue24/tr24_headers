@@ -128,13 +128,23 @@ void *tr24sp__smove_size(void *ptr, size_t size);
 }
 #include <memory>
 
-TR24_INLINE static void *tr24sp__cppabi_ref(tr24sp__s_smalloc_args args)
+template <typename T> static void *tr24sp__cppabi_ref_internal(T args)
 {
-    auto ptr = std::make_unique<tr24sp__s_smalloc_args>(args);
+    auto ptr = std::make_unique<T>(args);
     return ptr.get();
 }
 
+static void *tr24sp__cppabi_ref_smargs_hidden(tr24sp__s_smalloc_args args)
+{
+    return tr24sp__cppabi_ref_internal<tr24sp__s_smalloc_args>(args);
+}
+
 extern "C" {
+
+TR24_INLINE static void *tr24sp__cppabi_ref(tr24sp__s_smalloc_args args)
+{
+    return tr24sp__cppabi_ref_smargs_hidden(args);
+}
 
 #define tr24sp__smalloc_m(...)                                    \
     tr24sp__smalloc((tr24sp__s_smalloc_args *)tr24sp__cppabi_ref( \
@@ -544,6 +554,7 @@ void *tr24sp__srealloc(size_t type, void *ptr, size_t size)
 #else
 #if !defined(TR24_CPP_USE_C_ABI)
 #warning just use std::unique_ptr<T> and std::shared_ptr<T>
+#warning if you need to use the C api for smart pointers define TR24_CPP_USE_C_ABI
 #endif
 #endif /* __cplusplus */
 /*
