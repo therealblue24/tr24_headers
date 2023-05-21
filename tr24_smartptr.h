@@ -1,4 +1,4 @@
-/* tr24_smartptr.h - v1.00 - public domain therealblue24 2023
+/* tr24_smartptr.h - v1.02 - public domain therealblue24 2023
  * A C smart pointer library using hacky GNU C extensions.
  * 
  * This file provides both the interface and the implementation.
@@ -44,14 +44,20 @@
  * -therealblue24
  *
  * History:
+ *      1.02 option to use C++ (not offically supported)
+ *      1.01 warning when using C++ to say use the stdlib ptrs
  *      1.00 ready for prod i think, cleaned up code and optimized sfree_stack
  *      0.02 first public release
  *      0.01 replace malloc, free, realloc and more calls with macros
  *      0.00 it works.
  */
-
+#if !defined(__cplusplus) || defined(TR24_CPP_USE_C_ABI)
 #ifndef TR24_SMARTPTR_H_
 #define TR24_SMARTPTR_H_
+
+#if defined(TR24_CPP_USE_C_ABI) && defined(__cplusplus)
+extern "C" {
+#endif /* TR24_CPP_USE_C_ABI & __cplusplus */
 
 /* We want to use C23 attributes when we can */
 #if __STDC_VERSION__ >= 202311L
@@ -230,6 +236,10 @@ TR24_PURE size_t tr24sp__array_type_size(void *ptr);
 TR24_PURE void *tr24sp__array_user_meta(void *ptr);
 #define array_user_meta tr24sp__array_user_meta
 
+#if defined(TR24_CPP_USE_C_ABI) && defined(__cplusplus)
+}
+#endif /* TR24_CPP_USE_C_ABI & __cplusplus */
+
 #endif /* TR24_SMARTPTR_H_ */
 
 #ifdef TR24_IMPL
@@ -238,6 +248,10 @@ TR24_PURE void *tr24sp__array_user_meta(void *ptr);
 
 #ifdef TR24_SMARTPTR_IMPL
 #undef TR24_SMARTPTR_IMPL
+
+#if defined(TR24_CPP_USE_C_ABI) && defined(__cplusplus)
+extern "C" {
+#endif /* TR24_CPP_USE_C_ABI & __cplusplus */
 
 TR24_PURE size_t tr24sp__array_length(void *ptr)
 {
@@ -493,8 +507,17 @@ void *tr24sp__srealloc(size_t type, void *ptr, size_t size)
     return newptr;
 }
 
+#if defined(TR24_CPP_USE_C_ABI) && defined(__cplusplus)
+}
+#endif /* TR24_CPP_USE_C_ABI & __cplusplus */
+
 #endif /* TR24_SMARTPTR_H_ */
 
+#else
+#if !defined(TR24_CPP_USE_C_ABI)
+#warning just use std::unique_ptr<T> and std::shared_ptr<T>
+#endif
+#endif /* __cplusplus */
 /*
 This is free and unencumbered software released into the public domain.
 

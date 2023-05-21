@@ -10,10 +10,15 @@
  * Examples are in examples folder.
  *
  * History:
+ *      0.02 extern "C" and more
  *      0.01 first public release
  */
 #ifndef TR24_MUTEX_H_
 #define TR24_MUTEX_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stdbool.h>
 
@@ -36,6 +41,10 @@ void *tr24_mutex_get(tr24_mutex_t mtx);
     var = val;                                 \
     tr24_mutex_unlock(mtx);
 
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* TR24_MUTEX_H_ */
 
 #ifdef TR24_IMPL
@@ -44,6 +53,10 @@ void *tr24_mutex_get(tr24_mutex_t mtx);
 
 #ifdef TR24_MUTEX_IMPL
 #undef TR24_MUTEX_IMPL
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 tr24_mutex_t tr24_mutex_create(void *val)
 {
@@ -71,6 +84,10 @@ void *tr24_mutex_get(tr24_mutex_t mtx)
 {
     return mtx.value;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* TR24_MUTEX_IMPL */
 
