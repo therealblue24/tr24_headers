@@ -255,19 +255,22 @@ extern "C" {
 
 TR24_PURE size_t tr24sp__array_length(void *ptr)
 {
-    tr24sp__s_meta_array *meta = tr24sp__get_smart_ptr_meta(ptr);
+    tr24sp__s_meta_array *meta =
+        (tr24sp__s_meta_array *)tr24sp__get_smart_ptr_meta(ptr);
     return meta ? meta->nmemb : 0;
 }
 
 TR24_PURE size_t tr24sp__array_type_size(void *ptr)
 {
-    tr24sp__s_meta_array *meta = tr24sp__get_smart_ptr_meta(ptr);
+    tr24sp__s_meta_array *meta =
+        (tr24sp__s_meta_array *)tr24sp__get_smart_ptr_meta(ptr);
     return meta ? meta->size : 0;
 }
 
 TR24_PURE TR24_INLINE void *tr24sp__array_user_meta(void *ptr)
 {
-    tr24sp__s_meta_array *meta = tr24sp__get_smart_ptr_meta(ptr);
+    tr24sp__s_meta_array *meta =
+        (tr24sp__s_meta_array *)tr24sp__get_smart_ptr_meta(ptr);
     return meta ? meta + 1 : NULL;
 }
 
@@ -363,7 +366,8 @@ void *tr24sp__smove_size(void *ptr, size_t size)
 
     size_t *metasize = (size_t *)ptr - 1;
     if(meta->kind & TR24_SP_ARRAY) {
-        tr24sp__s_meta_array *arr_meta = tr24sp__get_smart_ptr_meta(ptr);
+        tr24sp__s_meta_array *arr_meta =
+            (tr24sp__s_meta_array *)tr24sp__get_smart_ptr_meta(ptr);
         args = (tr24sp__s_smalloc_args){
             .size = arr_meta->size * arr_meta->nmemb,
             .kind = (enum tr24sp__pointer)(TR24_SP_SHARED | TR24_SP_ARRAY),
@@ -399,9 +403,11 @@ TR24_INLINE static void *alloc_entry(size_t head, size_t size, size_t metasize)
 TR24_INLINE static void tr24sp__dealloc_entry(tr24sp__s_meta *meta, void *ptr)
 {
     if(meta->dtor) {
-        void *user_meta = tr24sp__get_smart_ptr_meta(ptr);
+        void *user_meta =
+            (tr24sp__s_meta_array *)tr24sp__get_smart_ptr_meta(ptr);
         if(meta->kind & TR24_SP_ARRAY) {
-            tr24sp__s_meta_array *arr_meta = (void *)(meta + 1);
+            tr24sp__s_meta_array *arr_meta =
+                (tr24sp__s_meta_array *)((void *)(meta + 1));
             for(size_t i = 0; i < arr_meta->nmemb; ++i)
                 meta->dtor((char *)ptr + arr_meta->size * i, user_meta);
         } else
@@ -427,7 +433,8 @@ static void *tr24sp__smalloc_impl(tr24sp__s_smalloc_args *args)
     size_t head_size = args->kind & TR24_SP_SHARED ?
                            sizeof(tr24sp__s_meta_shared) :
                            sizeof(tr24sp__s_meta);
-    tr24sp__s_meta_shared *ptr = alloc_entry(head_size, size, aligned_metasize);
+    tr24sp__s_meta_shared *ptr =
+        (tr24sp__s_meta_shared *)alloc_entry(head_size, size, aligned_metasize);
     if(ptr == NULL)
         return NULL;
 
@@ -457,7 +464,7 @@ TR24_INLINE static void *tr24sp__smalloc_array(tr24sp__s_smalloc_args *args)
     const size_t size =
         tr24sp__align(args->meta.size + sizeof(tr24sp__s_meta_array));
     char new_meta[size];
-    tr24sp__s_meta_array *arr_meta = (void *)new_meta;
+    tr24sp__s_meta_array *arr_meta = (tr24sp__s_meta_array *)((void *)new_meta);
     *arr_meta = (tr24sp__s_meta_array){
         .size = args->size,
         .nmemb = args->nmemb,
