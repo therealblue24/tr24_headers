@@ -187,7 +187,7 @@ TR24_INLINE void tr24sp__sfree_stack(void *ptr)
 
 #define tr24__smart_ptr(k, t, ...)                                             \
     (t *)({                                                                    \
-        struct s_tmp {                                                         \
+        struct tr24sp__s_tmp {                                                 \
             TR24SP_SENTINEL_DEC                                                \
             __typeof__(t) value;                                               \
             tr24sp__f_destruct dtor;                                           \
@@ -209,7 +209,7 @@ TR24_INLINE void tr24sp__sfree_stack(void *ptr)
 
 #define tr24__smart_arr(k, t, l, ...)                                  \
     (t *)({                                                            \
-        struct s_tmp {                                                 \
+        struct tr24sp__s_tmp {                                         \
             TR24SP_SENTINEL_DEC                                        \
             __typeof__(__typeof__(t)[l]) value;                        \
             tr24sp__f_destruct dtor;                                   \
