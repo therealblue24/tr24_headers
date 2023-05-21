@@ -3,7 +3,8 @@
  * 
  * This file provides both the interface and the implementation.
  * To init the implementation,
- *      #define TR24_MUTEX_IMPL
+ *      #define TR24_MUTEX_IMPL or
+ *      #define TR24_IMPL
  * in *one* source file, before #including to generate the implementation.
  *
  * Examples are in examples folder.

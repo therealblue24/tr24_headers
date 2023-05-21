@@ -1,9 +1,10 @@
-/* tr24_smartptr.h - v0.02 - public domain therealblue24 2023
+/* tr24_smartptr.h - v1.00 - public domain therealblue24 2023
  * A C smart pointer library using hacky GNU C extensions.
  * 
  * This file provides both the interface and the implementation.
  * To init the implementation,
- *      #define TR24_SMARTPTR_IMPL
+ *      #define TR24_SMARTPTR_IMPL or
+ *      #define TR24_IMPL
  * in *one* source file, before #including to generate the implementation.
  *
  * Examples are found in the examples folder.
@@ -43,6 +44,7 @@
  * -therealblue24
  *
  * History:
+ *      1.00 ready for prod i think, cleaned up code and optimized sfree_stack
  *      0.02 first public release
  *      0.01 replace malloc, free, realloc and more calls with macros
  *      0.00 it works.
@@ -52,7 +54,7 @@
 #define TR24_SMARTPTR_H_
 
 /* We want to use C23 attributes when we can */
-#if __STDC_VERSION__ == 202311L
+#if __STDC_VERSION__ >= 202311L
 #ifndef TR24_INLINE
 #define TR24_INLINE [[gnu::always_inline]] inline
 #endif /* TR24_INLINE */
@@ -80,10 +82,10 @@
 #define TR24SP_SENTINEL_DEC int sentinel_;
 
 enum tr24sp__pointer {
-    TR24SP__UNIQUE,
-    TR24SP__SHARED,
+    TR24_SP_UNIQUE,
+    TR24_SP_SHARED,
 
-    TR24SP__ARRAY = 1 << 8
+    TR24_SP_ARRAY = 1 << 8
 };
 
 typedef void (*tr24sp__f_destruct)(void *, void *);
@@ -93,7 +95,7 @@ typedef struct {
     void (*dealloc)(void *);
 } tr24sp__s_allocator;
 
-extern tr24sp__s_allocator tr24sp__smalloc_allocator;
+extern tr24sp__s_allocator tr24__smalloc_allocator;
 
 typedef struct {
     TR24SP_SENTINEL_DEC
@@ -126,6 +128,7 @@ void *tr24sp__smove_size(void *ptr, size_t size);
 
 TR24_INLINE void tr24sp__sfree_stack(void *ptr)
 {
+    /* Old code:
     union {
         void **real_ptr;
         void *ptr;
@@ -133,11 +136,16 @@ TR24_INLINE void tr24sp__sfree_stack(void *ptr)
     conv.ptr = ptr;
     tr24sp__sfree(*conv.real_ptr);
     *conv.real_ptr = NULL;
+*/
+    tr24sp__sfree(*(void **)ptr);
+    *(void **)ptr = NULL;
 }
 
-// clang-format off
-#define TR24SP__ARGS_ args.dtor, { args.meta.ptr, args.meta.size }
-// clang-format on
+#define TR24SP__ARGS_                 \
+    args.dtor,                        \
+    {                                 \
+        args.meta.ptr, args.meta.size \
+    }
 
 #if __STDC_VERSION__ == 202311L
 #define tr24_smart [[gnu::cleanup(tr24sp__sfree_stack)]]
@@ -147,7 +155,19 @@ TR24_INLINE void tr24sp__sfree_stack(void *ptr)
 
 #ifndef TR24_MEMCPY
 #define TR24_MEMCPY memcpy
-#endif
+#endif /* TR24_MEMCPY */
+
+#ifndef TR24_ASSERT
+#define TR24_ASSERT assert
+#endif /* TR24_ASSERT */
+
+#ifndef TR24_MALLOC
+#define TR24_MALLOC malloc
+#endif /* TR24_MALLOC */
+
+#ifndef TR24_FREE
+#define TR24_FREE free
+#endif /* TR24_FREE */
 
 #define tr24__smart_ptr(k, t, ...)                                             \
     ({                                                                         \
@@ -188,13 +208,13 @@ TR24_INLINE void tr24sp__sfree_stack(void *ptr)
         var;                                                           \
     })
 
-#define tr24_shared_ptr(t, ...) tr24__smart_ptr(TR24SP__SHARED, t, __VA_ARGS__)
-#define tr24_unique_ptr(t, ...) tr24__smart_ptr(TR24SP__UNIQUE, t, __VA_ARGS__)
+#define tr24_shared_ptr(t, ...) tr24__smart_ptr(TR24_SP_SHARED, t, __VA_ARGS__)
+#define tr24_unique_ptr(t, ...) tr24__smart_ptr(TR24_SP_UNIQUE, t, __VA_ARGS__)
 
 #define tr24_shared_arr(t, l, ...) \
-    tr24__smart_arr(TR24SP__SHARED, t, l, __VA_ARGS__)
+    tr24__smart_arr(TR24_SP_SHARED, t, l, __VA_ARGS__)
 #define tr24_unique_arr(t, l, ...) \
-    tr24__smart_arr(TR24SP__UNIQUE, t, l, __VA_ARGS__)
+    tr24__smart_arr(TR24_SP_UNIQUE, t, l, __VA_ARGS__)
 
 typedef struct {
     size_t nmemb;
@@ -240,17 +260,13 @@ TR24_PURE TR24_INLINE void *tr24sp__array_user_meta(void *ptr)
 typedef struct {
     enum tr24sp__pointer kind;
     tr24sp__f_destruct dtor;
-#ifndef NDEBUG
     void *ptr;
-#endif /* !NDEBUG */
 } tr24sp__s_meta;
 
 typedef struct {
     enum tr24sp__pointer kind;
     tr24sp__f_destruct dtor;
-#ifndef NDEBUG
     void *ptr;
-#endif /* !NDEBUG */
     volatile size_t ref_count;
 } tr24sp__s_meta_shared;
 
@@ -273,19 +289,7 @@ TR24_PURE TR24_INLINE tr24sp__s_meta *tr24sp__get_meta(void *ptr)
 
 #undef tr24sp__smalloc
 
-#ifndef TR24_ASSERT
-#define TR24_ASSERT assert
-#endif /* TR24_ASSERT */
-
-#ifndef TR24_MALLOC
-#define TR24_MALLOC malloc
-#endif /* TR24_MALLOC */
-
-#ifndef TR24_FREE
-#define TR24_FREE free
-#endif /* TR24_FREE */
-
-tr24sp__s_allocator tr24sp__smalloc_allocator = { TR24_MALLOC, TR24_FREE };
+tr24sp__s_allocator tr24__smalloc_allocator = { TR24_MALLOC, TR24_FREE };
 
 TR24_INLINE static size_t atomic_add(volatile size_t *count, const size_t limit,
                                      const size_t val)
@@ -317,7 +321,7 @@ TR24_INLINE void *tr24sp__get_smart_ptr_meta(void *ptr)
     tr24sp__s_meta *meta = tr24sp__get_meta(ptr);
     TR24_ASSERT(meta->ptr == ptr);
 
-    size_t head_size = meta->kind & TR24SP__SHARED ?
+    size_t head_size = meta->kind & TR24_SP_SHARED ?
                            sizeof(tr24sp__s_meta_shared) :
                            sizeof(tr24sp__s_meta);
     size_t *metasize = (size_t *)ptr - 1;
@@ -331,7 +335,7 @@ void *tr24sp__sref(void *ptr)
 {
     tr24sp__s_meta *meta = tr24sp__get_meta(ptr);
     TR24_ASSERT(meta->ptr == ptr);
-    TR24_ASSERT(meta->kind & TR24SP__SHARED);
+    TR24_ASSERT(meta->kind & TR24_SP_SHARED);
     atomic_increment(&((tr24sp__s_meta_shared *)meta)->ref_count);
     return ptr;
 }
@@ -339,16 +343,16 @@ void *tr24sp__sref(void *ptr)
 void *tr24sp__smove_size(void *ptr, size_t size)
 {
     tr24sp__s_meta *meta = tr24sp__get_meta(ptr);
-    TR24_ASSERT(meta->kind & TR24SP__UNIQUE);
+    TR24_ASSERT(meta->kind & TR24_SP_UNIQUE);
 
     tr24sp__s_smalloc_args args;
 
     size_t *metasize = (size_t *)ptr - 1;
-    if(meta->kind & TR24SP__ARRAY) {
+    if(meta->kind & TR24_SP_ARRAY) {
         tr24sp__s_meta_array *arr_meta = tr24sp__get_smart_ptr_meta(ptr);
         args = (tr24sp__s_smalloc_args){
             .size = arr_meta->size * arr_meta->nmemb,
-            .kind = (enum tr24sp__pointer)(TR24SP__SHARED | TR24SP__ARRAY),
+            .kind = (enum tr24sp__pointer)(TR24_SP_SHARED | TR24_SP_ARRAY),
             .dtor = meta->dtor,
             .meta = { arr_meta, *metasize },
         };
@@ -356,7 +360,7 @@ void *tr24sp__smove_size(void *ptr, size_t size)
         void *user_meta = tr24sp__get_smart_ptr_meta(ptr);
         args = (tr24sp__s_smalloc_args){
             .size = size,
-            .kind = TR24SP__SHARED,
+            .kind = TR24_SP_SHARED,
             .dtor = meta->dtor,
             .meta = { user_meta, *metasize },
         };
@@ -374,7 +378,7 @@ TR24_INLINE static void *alloc_entry(size_t head, size_t size, size_t metasize)
 #ifdef SMALLOC_FIXED_ALLOCATOR
     return TR24_MALLOC(totalsize);
 #else /* !SMALLOC_FIXED_ALLOCATOR */
-    return tr24sp__smalloc_allocator.alloc(totalsize);
+    return tr24__smalloc_allocator.alloc(totalsize);
 #endif /* !SMALLOC_FIXED_ALLOCATOR */
 }
 
@@ -382,7 +386,7 @@ TR24_INLINE static void tr24sp__dealloc_entry(tr24sp__s_meta *meta, void *ptr)
 {
     if(meta->dtor) {
         void *user_meta = tr24sp__get_smart_ptr_meta(ptr);
-        if(meta->kind & TR24SP__ARRAY) {
+        if(meta->kind & TR24_SP_ARRAY) {
             tr24sp__s_meta_array *arr_meta = (void *)(meta + 1);
             for(size_t i = 0; i < arr_meta->nmemb; ++i)
                 meta->dtor((char *)ptr + arr_meta->size * i, user_meta);
@@ -393,7 +397,7 @@ TR24_INLINE static void tr24sp__dealloc_entry(tr24sp__s_meta *meta, void *ptr)
 #ifdef SMALLOC_FIXED_ALLOCATOR
     TR24_FREE(meta);
 #else /* !SMALLOC_FIXED_ALLOCATOR */
-    tr24sp__smalloc_allocator.dealloc(meta);
+    tr24__smalloc_allocator.dealloc(meta);
 #endif /* !SMALLOC_FIXED_ALLOCATOR */
 }
 
@@ -406,7 +410,7 @@ static void *tr24sp__smalloc_impl(tr24sp__s_smalloc_args *args)
     size_t aligned_metasize = tr24sp__align(args->meta.size);
     size_t size = tr24sp__align(args->size);
 
-    size_t head_size = args->kind & TR24SP__SHARED ?
+    size_t head_size = args->kind & TR24_SP_SHARED ?
                            sizeof(tr24sp__s_meta_shared) :
                            sizeof(tr24sp__s_meta);
     tr24sp__s_meta_shared *ptr = alloc_entry(head_size, size, aligned_metasize);
@@ -427,7 +431,7 @@ static void *tr24sp__smalloc_impl(tr24sp__s_smalloc_args *args)
 #endif
     };
 
-    if(args->kind & TR24SP__SHARED)
+    if(args->kind & TR24_SP_SHARED)
         ptr->ref_count = 1;
 
     return sz + 1;
@@ -447,7 +451,7 @@ TR24_INLINE static void *tr24sp__smalloc_array(tr24sp__s_smalloc_args *args)
     TR24_MEMCPY(arr_meta + 1, args->meta.data, args->meta.size);
     return tr24sp__smalloc_impl(&(tr24sp__s_smalloc_args){
         .size = args->nmemb * args->size,
-        .kind = (enum tr24sp__pointer)(args->kind | TR24SP__ARRAY),
+        .kind = (enum tr24sp__pointer)(args->kind | TR24_SP_ARRAY),
         .dtor = args->dtor,
         .meta = { &new_meta, size },
     });
@@ -469,7 +473,7 @@ void tr24sp__sfree(void *ptr)
     tr24sp__s_meta *meta = tr24sp__get_meta(ptr);
     TR24_ASSERT(meta->ptr == ptr);
 
-    if(meta->kind & TR24SP__SHARED &&
+    if(meta->kind & TR24_SP_SHARED &&
        atomic_decrement(&((tr24sp__s_meta_shared *)meta)->ref_count))
         return;
 
@@ -482,7 +486,7 @@ void *tr24sp__srealloc(size_t type, void *ptr, size_t size)
         return NULL;
     TR24_ASSERT((size_t)ptr == tr24sp__align((size_t)ptr));
     tr24sp__s_meta *meta = tr24sp__get_meta(ptr);
-    TR24_ASSERT(ptr == ptr);
+    TR24_ASSERT(meta->ptr == ptr);
     void *newptr = tr24sp__smalloc_m(type, size / type, meta->kind, meta->dtor);
     TR24_MEMCPY(newptr, ptr, size);
     tr24sp__sfree(ptr);
