@@ -400,7 +400,8 @@ void *tr24sp__smove_size(void *ptr, size_t size)
 }
 
 TR24_MALLOC_API
-TR24_INLINE static void *alloc_entry(size_t head, size_t size, size_t metasize)
+TR24_INLINE static void *tr24sp__alloc_entry(size_t head, size_t size,
+                                             size_t metasize)
 {
     const size_t totalsize = head + size + metasize + sizeof(size_t);
 #ifdef SMALLOC_FIXED_ALLOCATOR
@@ -443,8 +444,8 @@ static void *tr24sp__smalloc_impl(tr24sp__s_smalloc_args *args)
     size_t head_size = args->kind & TR24_SP_SHARED ?
                            sizeof(tr24sp__s_meta_shared) :
                            sizeof(tr24sp__s_meta);
-    tr24sp__s_meta_shared *ptr =
-        (tr24sp__s_meta_shared *)alloc_entry(head_size, size, aligned_metasize);
+    tr24sp__s_meta_shared *ptr = (tr24sp__s_meta_shared *)tr24sp__alloc_entry(
+        head_size, size, aligned_metasize);
     if(ptr == NULL)
         return NULL;
 
