@@ -34,11 +34,9 @@ void tr24_mutex_lock(tr24_mutex_t mtx);
 void tr24_mutex_unlock(tr24_mutex_t mtx);
 void *tr24_mutex_get(tr24_mutex_t mtx);
 
-#define tr24_mutex_set(mtx, var, val)          \
-    while(mtx.locked || mtx.in_session_locked) \
-        ;                                      \
-    tr24_mutex_lock(mtx);                      \
-    var = val;                                 \
+#define tr24_mutex_set(mtx, var, val) \
+    tr24_mutex_lock(mtx);             \
+    var = val;                        \
     tr24_mutex_unlock(mtx);
 
 #ifdef __cplusplus
@@ -75,6 +73,8 @@ void tr24_mutex_lock(tr24_mutex_t mtx)
 
 void tr24_mutex_unlock(tr24_mutex_t mtx)
 {
+    while(mtx.locked == 0 || mtx.in_session_locked == 0)
+        ;
     mtx.in_session_locked = true;
     mtx.locked = false;
     mtx.in_session_locked = false;
