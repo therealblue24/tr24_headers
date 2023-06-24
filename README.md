@@ -20,3 +20,9 @@ do the #define statement *once*. Exclude the #define statement if you want
 to include the header without implementation. You can also define the macro `TR24_IMPL` if you want to implement for every header.
 
 > Note: Lines are measured using the command `cloc`.
+## OS Support
+library    | Linux | MacOS | Windows | Caveats |
+--------------------- | ---- | -------- | --- | ----------------|
+**[tr24_smartptr.h](tr24_smartptr.h)** | Yes | Yes | No | Windows does not work as it does not have __sync functions.
+**[tr24_mutex.h](tr24_mutex.h)** | Yes | Yes | Untested | Pure C, should work
+**[tr24_async.h](tr24_async.h)** | Yes | Yes | No       | Uses pthreads. Unix only.
