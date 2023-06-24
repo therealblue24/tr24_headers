@@ -10,6 +10,7 @@
  * Examples are in examples folder.
  *
  * History:
+ *      0.02 wrapped tr24_async_t that you can await with no worries
  *      0.01 first public release
  */
 #ifndef TR24_ASYNC_H_
@@ -44,39 +45,57 @@ extern "C" {
 #endif /* TR24_FREE */
 
 typedef struct tr24_future {
+    int __start_canary;
     pthread_t thread;
     pthread_attr_t attr;
     void *(*func)(void *arg);
     int id;
     void *internal_arg;
     void (*await)(struct tr24_future *future, void *val);
+    int __end_canary;
 } tr24_future_t;
 
 typedef struct tr24_future_arg {
+    int __start_canary;
     void *(*func)(void *arg);
     void *arg;
+    int __end_canary;
 } tr24_future_arg_t;
 
 typedef struct tr24_promise {
+    int __start_canary;
     void *result;
     pthread_mutex_t mutex;
     pthread_cond_t cond;
     bool done;
     int id;
+    int __end_canary;
 } tr24_promise_t;
 
-tr24_future_t *future_create(void *(*start_routine)(void *arg));
+typedef struct tr24_async {
+    int __start_canary;
+    tr24_promise_t *promise;
+    tr24_future_t *future;
+    void (*await)(struct tr24_async *env);
+    int __end_canary;
+} tr24_async_t;
+
+tr24_future_t *tr24_future_create(void *(*start_routine)(void *arg));
 void tr24_future_start(tr24_future_t *future, void *arg);
 void tr24_future_stop(tr24_future_t *future);
-void tr24_future_close(tr24_future_t *future);
+void tr24_future_destroy(tr24_future_t *future);
 void tr24_future_set_arg(tr24_future_t *future, void *arg);
 
 tr24_promise_t *tr24_promise_create();
 void *tr24_promise_get(tr24_promise_t *p);
 void tr24_promise_set(tr24_promise_t *p, void *res);
 bool tr24_promise_done(tr24_promise_t *p);
+void tr24_promise_destroy(tr24_promise_t *p);
 
-void tr24_await(tr24_future_t *f, void *v);
+tr24_async_t *tr24_async_env(tr24_future_t *future, tr24_promise_t *promise);
+void tr24_async_destroy(tr24_async_t *async);
+
+void tr24_await(void *f, void *v);
 
 #ifdef __cplusplus
 }
@@ -106,15 +125,43 @@ extern "C" {
 
 static int __global_id_thingy = 0;
 
-static void _tr24_await_impl(tr24_future_t *future, void *val)
+static void _tr24_await_impl_future(tr24_future_t *future, void *val)
 {
     tr24_future_set_arg(future, val);
     tr24_future_start(future, future->internal_arg);
 }
 
-void tr24_await(tr24_future_t *f, void *v)
+static void _tr24_await_impl_async(tr24_async_t *async_env)
 {
-    _tr24_await_impl(f, v);
+    _tr24_await_impl_future(async_env->future, async_env->promise);
+}
+
+void tr24_await(void *f, void *v)
+{
+    if(((tr24_future_t *)f)->__start_canary == 1) {
+        _tr24_await_impl_future(f, v);
+    }
+    if(((tr24_async_t *)f)->__start_canary == 5) {
+        _tr24_await_impl_async(f);
+    }
+}
+
+tr24_async_t *tr24_async_env(tr24_future_t *future, tr24_promise_t *promise)
+{
+    tr24_async_t *ret = (tr24_async_t *)TR24_MALLOC(sizeof(tr24_async_t));
+    ret->__start_canary = 5;
+    ret->__end_canary = 5;
+    ret->await = _tr24_await_impl_async;
+    ret->future = future;
+    ret->promise = promise;
+    return ret;
+}
+
+void tr24_async_destroy(tr24_async_t *_async)
+{
+    tr24_promise_destroy(_async->promise);
+    tr24_future_destroy(_async->future);
+    TR24_FREE(_async);
 }
 
 tr24_future_t *tr24_future_create(void *(*start_routine)(void *arg))
@@ -124,9 +171,11 @@ tr24_future_t *tr24_future_create(void *(*start_routine)(void *arg))
     pthread_attr_setdetachstate(&future->attr, PTHREAD_CREATE_JOINABLE);
     future->func = start_routine;
     future->id = __global_id_thingy;
-    future->await = _tr24_await_impl;
+    future->await = _tr24_await_impl_future;
     srand(time(NULL));
     __global_id_thingy += rand();
+    future->__start_canary = 1;
+    future->__end_canary = 1;
     return future;
 }
 
@@ -141,6 +190,8 @@ static void *tr24_future_func_wrapper(void *arg)
 {
     tr24_future_arg_t *f = (tr24_future_arg_t *)arg;
     void *res = f->func(f->arg);
+    f->__end_canary = 2;
+    f->__start_canary = 2;
     TR24_FREE(f);
     pthread_exit(res);
     return res;
@@ -161,7 +212,7 @@ void tr24_future_stop(tr24_future_t *future)
     pthread_cancel(future->thread);
 }
 
-void tr24_future_close(tr24_future_t *future)
+void tr24_future_destroy(tr24_future_t *future)
 {
     void *status;
     int rc = pthread_join(future->thread, &status);
@@ -178,6 +229,8 @@ tr24_promise_t *tr24_promise_create()
     promise->id = __global_id_thingy;
     srand(time(NULL));
     __global_id_thingy += rand();
+    promise->__start_canary = 3;
+    promise->__end_canary = 3;
     return promise;
 }
 
@@ -208,7 +261,7 @@ bool tr24_promise_done(tr24_promise_t *p)
     return done;
 }
 
-void tr24_promise_close(tr24_promise_t *p)
+void tr24_promise_destroy(tr24_promise_t *p)
 {
     pthread_mutex_destroy(&p->mutex);
     pthread_cond_destroy(&p->cond);
