@@ -23,6 +23,6 @@ to include the header without implementation. You can also define the macro `TR2
 ## OS Support
 library    | Linux | MacOS | Windows | Caveats |
 --------------------- | ---- | -------- | --- | ----------------|
-**[tr24_smartptr.h](tr24_smartptr.h)** | Yes | Yes | No | Windows does not work as it does not have __sync functions.
+**[tr24_smartptr.h](tr24_smartptr.h)** | Yes | Yes | No | Windows does not work as it does not have __sync_bool_and_compare_swap. Else, Pure *GNU* C.
 **[tr24_mutex.h](tr24_mutex.h)** | Yes | Yes | Untested | Pure C, should work
 **[tr24_async.h](tr24_async.h)** | Yes | Yes | No       | Uses pthreads. Unix only.
