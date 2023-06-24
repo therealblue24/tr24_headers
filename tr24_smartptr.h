@@ -1,6 +1,6 @@
 /* tr24_smartptr.h - v1.02 - public domain therealblue24 2023
  * A C smart pointer library using hacky GNU C extensions.
- * 
+ *
  * This file provides both the interface and the implementation.
  * To init the implementation,
  *      #define TR24_SMARTPTR_IMPL or
@@ -20,7 +20,7 @@
  *      tr24_smart int *ptr = tr24_unique_ptr(int, 42);
  *      // pointer is now 42
  * }
- * 
+ *
  * All pointers are autofreed, such the "smart pointer" title.
  *
  * You can also specify a custom destructor:
