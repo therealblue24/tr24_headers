@@ -44,6 +44,7 @@
  * -therealblue24
  *
  * History:
+ *      1.04 make so that tr24_*_arr has a non-constant length input
  *      1.03 continue on C <-> C++ compatibility
  *      1.02 option to use C++ (not offically supported)
  *      1.01 warning when using C++ to say use the stdlib ptrs
@@ -183,6 +184,10 @@ TR24_INLINE void tr24sp__sfree_stack(void *ptr)
 #define TR24_MEMCPY memcpy
 #endif /* TR24_MEMCPY */
 
+#ifndef TR24_MEMSET
+#define TR24_MEMSET memset
+#endif /* TR24_MEMSET */
+
 #ifndef TR24_ASSERT
 #define TR24_ASSERT assert
 #endif /* TR24_ASSERT */
@@ -196,7 +201,7 @@ TR24_INLINE void tr24sp__sfree_stack(void *ptr)
 #endif /* TR24_FREE */
 
 #define tr24__smart_ptr(k, t, ...)                                             \
-    (t *)({                                                                    \
+    ({                                                                         \
         struct tr24sp__s_tmp {                                                 \
             TR24SP_SENTINEL_DEC                                                \
             __typeof__(t) value;                                               \
@@ -218,10 +223,10 @@ TR24_INLINE void tr24sp__sfree_stack(void *ptr)
     })
 
 #define tr24__smart_arr(k, t, l, ...)                                  \
-    (t *)({                                                            \
+    ({                                                                 \
         struct tr24sp__s_tmp {                                         \
             TR24SP_SENTINEL_DEC                                        \
-            __typeof__(__typeof__(t)[l]) value;                        \
+            __typeof__(t) *value;                                      \
             tr24sp__f_destruct dtor;                                   \
             struct {                                                   \
                 const void *ptr;                                       \
@@ -230,7 +235,11 @@ TR24_INLINE void tr24sp__sfree_stack(void *ptr)
         } args = { TR24SP_SENTINEL __VA_ARGS__ };                      \
         void *var = tr24sp__smalloc_m(sizeof(t), l, k, TR24SP__ARGS_); \
         if(var != NULL)                                                \
-            TR24_MEMCPY(var, &args.value, sizeof(t));                  \
+            if(args.value != NULL) {                                   \
+                TR24_MEMCPY(var, &args.value, sizeof(t));              \
+            } else {                                                   \
+                TR24_MEMSET(var, 0, sizeof(t) * l);                    \
+            }                                                          \
         var;                                                           \
     })
 
@@ -430,7 +439,7 @@ TR24_INLINE static void tr24sp__dealloc_entry(tr24sp__s_meta *meta, void *ptr)
             tr24sp__s_meta_array *arr_meta =
                 (tr24sp__s_meta_array *)((void *)(meta + 1));
             for(size_t i = 0; i < arr_meta->nmemb; ++i)
-                meta->dtor((char *)ptr + arr_meta->size * i, user_meta);
+                meta->dtor((char *)ptr + arr_meta->size * i, arr_meta + 1);
         } else
             meta->dtor(ptr, user_meta);
     }
