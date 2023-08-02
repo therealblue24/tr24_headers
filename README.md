@@ -8,8 +8,9 @@ library    | lastest version | category | Lines of Code | description | use for
 **[tr24_mutex.h](tr24_mutex.h)**       | 0.02 | threading | 61  | simple mutex implementation in C     | C/C++
 **[tr24_async.h](tr24_async.h)**       | 0.02 | async in c | 220 | async futures and promises in C | C/C++
 **[tr24_valid_ptr.h](tr24_valid_ptr.h)** | 0.01 | pointers | 69 | runtime pointer valididation | C
+**[tr24_box.h](tr24_box.h)** | 0.01 | wrapped pointers | 101 | wrapped fat pointers | C
 
-Total lines of code: **777**
+Total lines of code: **878**
 
 # How to Use
 Get the header, and then insert code like this:
@@ -27,4 +28,5 @@ library    | Linux | MacOS | Windows | Caveats |
 **[tr24_smartptr.h](tr24_smartptr.h)** | Yes | Yes | No | Windows does not work as it does not have __sync_bool_and_compare_swap. Else, Pure *GNU* C.
 **[tr24_mutex.h](tr24_mutex.h)** | Yes | Yes | Untested | Pure C, should work
 **[tr24_async.h](tr24_async.h)** | Yes | Yes | No       | Uses pthreads. Unix only.
-**[tr24_valid_ptr.h](tr24_valid_ptr)** | Yes | Yes | No | unistd! UNIX syscalls! unix only.
+**[tr24_valid_ptr.h](tr24_valid_ptr.h)** | Yes | Yes | No | unistd! UNIX syscalls! unix only.
+**[tr24_box.h](tr24_box.h)** | Yes | Yes | Maybe? | Pure C, should work
